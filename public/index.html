@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Akıllı İstatistik AI</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; line-height: 1.6; }
+        #chat-box { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin-bottom: 10px; background: #f9f9f9; }
+        input { width: 80%; padding: 10px; }
+        button { padding: 10px; cursor: pointer; }
+        .bot-msg { color: blue; margin-bottom: 10px; white-space: pre-wrap; }
+        .user-msg { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>📊 Akıllı İstatistik AI</h2>
+    <div id="chat-box"></div>
+    <input type="text" id="userInput" placeholder="Sorunuzu yazın...">
+    <button onclick="gonder()">Sor</button>
+
+    <script>
+        async function gonder() {
+            const input = document.getElementById('userInput');
+            const chatBox = document.getElementById('chat-box');
+            if(!input.value) return;
+
+            chatBox.innerHTML += `<div class="user-msg">Siz: ${input.value}</div>`;
+            
+            const response = await fetch('/soru-sor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ soru: input.value })
+            });
+            
+            const data = await response.json();
+            chatBox.innerHTML += `<div class="bot-msg">AI: ${data.cevap}</div>`;
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
