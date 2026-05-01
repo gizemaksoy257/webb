@@ -14,7 +14,7 @@ app.use(express.json());
 // 2. API Yapılandırması
 // GÜVENLİK NOTU: API anahtarını kodun içine yazmak yerine 
 // Render panelinden "Environment Variable" olarak ekleyeceğiz.
-const apiKey = process.env.GEMINI_API_KEY || "AIzaSyBgBNofbl2Ko_WKkDlEsKrMgMAaFOX_hVM";
+const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const systemInstruction = `
@@ -39,7 +39,7 @@ Sepete Ekle: [Kullanıcıya bu testleri satın alması için çağrıda bulun]
 `;
 
 const model = genAI.getGenerativeModel({ 
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.0-flash",
     systemInstruction: systemInstruction,
     generationConfig: {
         temperature: 0.3,
