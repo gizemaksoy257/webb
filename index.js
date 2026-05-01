@@ -39,7 +39,7 @@ Sepete Ekle: [Kullanıcıya bu testleri satın alması için çağrıda bulun]
 `;
 
 const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
+    model: "gemini-pro",
     systemInstruction: systemInstruction,
     generationConfig: {
         temperature: 0.3,
