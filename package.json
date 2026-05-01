@@ -10,7 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/generative-ai": "latest",
     "cors": "^2.8.6",
     "express": "^5.2.1"
   }
