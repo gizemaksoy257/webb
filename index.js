@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// API Yapılandırması - Anahtar isminin Render ile aynı olduğundan emin ol
+// API KEY - Render Environment Variables ile aynı olmalı
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -26,30 +26,41 @@ KISITLAMALAR:
 - ANOVA öneriyorsan Levene Testi'ni de ekle.
 `;
 
-// HATA BURADAYDI: Görünmez karakterler temizlendi ve yapı güncellendi
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash"
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash"
 });
 
 // API Endpoint
-app.post('/soru-sor', async (req, res) => {
-    const { soru } = req.body;
-    try {
-        // systemInstruction'ı burada göndererek v1beta hatasını bypass ediyoruz
-        const prompt = `${systemInstructionText}\n\nKullanıcı Sorusu: ${soru}`;
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        res.json({ cevap: response.text() });
-    } catch (error) {
-        console.error("Hata Detayı:", error);
-        res.status(500).json({ hata: "Yapay zeka şu an cevap veremiyor." });
-    }
+app.post("/soru-sor", async (req, res) => {
+  const { soru } = req.body;
+
+  try {
+    const prompt = `${systemInstructionText}\n\nKullanıcı Sorusu: ${soru}`;
+
+    // YENİ SDK'ya göre doğru kullanım
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ]
+    });
+
+    res.json({ cevap: result.response.text() });
+
+  } catch (error) {
+    console.error("Hata Detayı:", error);
+    res.status(500).json({
+      hata: "Yapay zeka şu an cevap veremiyor."
+    });
+  }
 });
 
-app.get('/', (req, res) => {
-    res.send("Akıllı İstatistik AI Sunucusu Çalışıyor!");
+app.get("/", (req, res) => {
+  res.send("Akıllı İstatistik AI Sunucusu Çalışıyor!");
 });
 
 app.listen(port, () => {
-    console.log(`Sunucu ${port} portunda aktif.`);
+  console.log(`Sunucu ${port} portunda aktif.`);
 });
