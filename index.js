@@ -1,58 +1,83 @@
 const express = require('express');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const cors = require('cors');
-
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// API Yapılandırması
-// ÖNEMLİ: Render panelinde GEMINI_API_KEY değişkeninin tanımlı olduğundan emin ol.
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = "gemini-2.5-flash-preview-04-17";
 
-const systemInstructionText = `
+const systemInstruction = `
 Sen "Akıllı İstatistik" web sitesinin uzman asistanısın. 
-Görevin: Kullanıcıların araştırma problemlerine göre aşağıdaki listeden en uygun testleri önermek.
+Görevin: Kullanıcıların araştırma problemlerine göre en uygun istatistiksel testleri önermek.
 
 TEST LİSTESİ:
-- Farklar: t-testi, ANOVA, Kruskal-Wallis, Mann-Whitney U.
-- İlişkiler: Pearson, Spearman, Ki-Kare.
-- Varsayımlar: Levene Testi, Shapiro-Wilk.
+- Farklar için: t-testi, ANOVA, Kruskal-Wallis, Mann-Whitney U.
+- İlişkiler için: Pearson, Spearman, Ki-Kare.
+- Varsayım testleri: Levene Testi (varyans homojenliği), Shapiro-Wilk (normallik).
+- Zaman Serisi: ARIMA, ADF Durağanlık.
+- Ölçek: Cronbach Alpha, AFA, DFA, YEM.
 
 KURALLAR:
-1. Sadece istatistik sorularına cevap ver.
-2. ANOVA önerirsen yanına Levene Testi'ni de ekle.
-3. Yanıtlarını Analiz, Önerilen Testler ve Sepete Ekle bölümleriyle formatla.
+1. Sadece istatistik ve veri bilimi sorularına cevap ver.
+2. Alakasız sorularda: "Üzgünüm, ben sadece istatistiksel test seçiminde yardımcı olan bir yapay zekayım."
+3. ANOVA önerirsen yanına mutlaka Levene Testi'ni de ekle.
+4. Önce normallik varsayımını kontrol et.
+
+FORMAT:
+Analiz: [Kullanıcının durumunu kısaca özetle]
+Önerilen Testler: [Test isimlerini ve nedenlerini listele]
+Sepete Ekle: [Bu testleri sipariş etmesi için yönlendir]
 `;
 
-// Model ismini v1beta uyumluluğu için en sade haliyle tanımlıyoruz
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-2.5-flash-preview-04-17" 
-});
-
-// API Endpoint
 app.post('/soru-sor', async (req, res) => {
     const { soru } = req.body;
-    
+
     if (!soru) {
         return res.status(400).json({ hata: "Soru boş olamaz." });
     }
 
+    if (!GEMINI_API_KEY) {
+        return res.status(500).json({ hata: "API key tanımlı değil." });
+    }
+
     try {
-        // System instruction'ı doğrudan prompt'a ekleyerek 404 hatalarını bypass ediyoruz
-        const prompt = `${systemInstructionText}\n\nKullanıcı Sorusu: ${soru}`;
-        
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+        const body = {
+            contents: [
+                {
+                    role: "user",
+                    parts: [{ text: systemInstruction + "\n\nKullanıcı Sorusu: " + soru }]
+                }
+            ],
+            generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 1024
+            }
+        };
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Gemini Hata:", JSON.stringify(data));
+            return res.status(500).json({ hata: "Gemini API hatası: " + (data.error?.message || "Bilinmeyen hata") });
+        }
+
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Cevap alınamadı.";
         res.json({ cevap: text });
+
     } catch (error) {
-        console.error("Hata Detayı:", error);
-        res.status(500).json({ hata: "Yapay zeka şu an cevap veremiyor. Logları kontrol edin." });
+        console.error("Hata:", error);
+        res.status(500).json({ hata: "Sunucu hatası: " + error.message });
     }
 });
 
