@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.5-flash-preview-04-17";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 const systemInstruction = `
 Sen "Akıllı İstatistik" web sitesinin uzman asistanısın. 
